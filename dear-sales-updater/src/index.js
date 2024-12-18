@@ -6,7 +6,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 
-app.get('/api/dear/sale', async (req, res) => {
+app.get('/', async (req, res) => {
     try {
         const tasks = await startScheduler();
         // // const tasks = await fetchSaleList();
