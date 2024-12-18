@@ -135,8 +135,14 @@ function delay(ms) {
 }
 
 function startScheduler() {
+    console.log("Starting scheduler...");
     fetchAndUpdateSales(); // Run immediately on startup
-    setInterval(fetchAndUpdateSales, 5 * 60 * 1000); // Run every 5 minutes
+
+    setInterval(() => {
+        console.log(`Running fetchAndUpdateSales at ${new Date().toISOString()}`);
+        fetchAndUpdateSales();
+    }, 5 * 60 * 1000); // Run every 5 minutes
 }
+
 
 module.exports = { fetchAndUpdateSales, fetchSale, fetchSaleList, startScheduler };
