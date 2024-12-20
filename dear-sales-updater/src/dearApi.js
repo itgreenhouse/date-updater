@@ -21,7 +21,7 @@ async function fetchSaleList() {
         const { createdSince, updatedSince } = getCurrentTimestamps();
 
         const response = await dearApiClient.get(
-            `/saleList?Page=1&Limit=1000&CreatedSince=${createdSince}&UpdatedSince=${updatedSince}&OrderLocationID=${"afa07df4-f06e-4678-aa25-f7e8bc707b1a"}`
+            `/saleList?Page=1&Limit=1000&CreatedSince=${createdSince}&UpdatedSince=${updatedSince}&OrderLocationID=${process.env.ORDER_LOCATION_ID}`
         );
         const data = response.data;
 
