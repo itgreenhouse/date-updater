@@ -7,12 +7,12 @@ function getCurrentTimestamps() {
     const fiveMinutesAgoEST = nowEST.clone().subtract(5, 'minutes'); // Subtract 5 minutes
 
     // Convert EST to UTC
-    const createdSinceUTC = nowEST.utc().format('YYYY-MM-DD'); // Date in UTC
+    const createdSinceEST = nowEST.format('YYYY-MM-DD'); // Date in EST
     const updatedSinceUTC = fiveMinutesAgoEST.utc().toISOString(); // ISO string in UTC
 
     return {
-        createdSince: createdSinceUTC,
-        updatedSince: updatedSinceUTC,
+        createdSince: createdSinceEST, // Use EST date
+        updatedSince: updatedSinceUTC, // Keep this in UTC
     };
 }
 
