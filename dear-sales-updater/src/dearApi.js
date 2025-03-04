@@ -60,7 +60,7 @@ function extractDeliveryDate(note) {
 }
 
 async function updateSaleShipBy(saleDetail) {
-    const { ID, Customer, CustomerID, DeliveryDate, ShipBy, TaxRule, PriceTier } = saleDetail;
+    var { ID, Customer, CustomerID, DeliveryDate, ShipBy, TaxRule, PriceTier } = saleDetail;
 
     // Normalize both dates for comparison (strip milliseconds and timezone)
     const normalizedDeliveryDate = DeliveryDate
@@ -69,6 +69,14 @@ async function updateSaleShipBy(saleDetail) {
     const normalizedShipBy = ShipBy
         ? new Date(ShipBy).toISOString().split('.')[0] + "Z"
         : null;
+
+
+    // Band-aid fix: if DeliveryDate falls before ShipBy (invoice) date, set DeliveryDate = ShipBy + 1 to account for staging and to prevent
+    //               unfulfilled orders to be missed by staging team.
+    if (normalizedDeliveryDate < normalizedShipBy) {
+        DeliveryDate = ShipBy.setDate(ShipBy.getDate() + 1)
+    }
+
 
     // Skip update if DeliveryDate is already equal to ShipBy
     if (normalizedDeliveryDate === normalizedShipBy) {
