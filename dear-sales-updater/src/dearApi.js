@@ -47,7 +47,7 @@ async function fetchSale(SaleID) {
 }
 
 function extractDeliveryDate(note) {
-    const match = note.match(/Delivery-Date:\s*([\d/]+)/);
+    const match = note.match(/Delivery-Date:\s*([\d/]+)/); // Searches the note (comments!) for the value within the format "Delivery-Date: ...etc." / [comment written 2025-03-06]
     if (match) {
         const dateParts = match[1].split('/'); // Split the extracted date (e.g., 2024/10/11)
         if (dateParts.length === 3) {
@@ -74,7 +74,8 @@ async function updateSaleShipBy(saleDetail) {
     // Band-aid fix: if DeliveryDate falls before ShipBy (invoice) date, set DeliveryDate = ShipBy + 1 to account for staging and to prevent
     //               unfulfilled orders to be missed by staging team.
     if (normalizedDeliveryDate < normalizedShipBy) {
-        DeliveryDate = ShipBy.setDate(ShipBy.getDate() + 1)
+        ShipBy = new Date(ShipBy)
+        DeliveryDate = (ShipBy.setDate(ShipBy.getDate() + 1)).toISOString()
     }
 
 
