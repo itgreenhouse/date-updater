@@ -70,14 +70,13 @@ async function updateSaleShipBy(saleDetail) {
         ? new Date(ShipBy).toISOString().split('.')[0] + "Z"
         : null;
 
-
     // Band-aid fix: if DeliveryDate falls before ShipBy (invoice) date, set DeliveryDate = ShipBy + 1 to account for staging and to prevent
     //               unfulfilled orders to be missed by staging team.
-    if (normalizedDeliveryDate < normalizedShipBy) {
+    // Includes edge case: when DeliveryDate is null because the comments (note) is empty, just add 1 to the invoice date
+    if (normalizedDeliveryDate < normalizedShipBy || DeliveryDate == null) {
         ShipBy = new Date(ShipBy)
         DeliveryDate = (ShipBy.setDate(ShipBy.getDate() + 1)).toISOString()
     }
-
 
     // Skip update if DeliveryDate is already equal to ShipBy
     if (normalizedDeliveryDate === normalizedShipBy) {
