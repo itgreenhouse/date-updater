@@ -47,16 +47,21 @@ async function fetchSale(SaleID) {
 }
 
 function extractDeliveryDate(note) {
-    const match = note.match(/Delivery-Date:\s*([\d/]+)/); // Searches the note (comments!) for the value within the format "Delivery-Date: ...etc." / [comment written 2025-03-06]
-    if (match) {
-        const dateParts = match[1].split('/'); // Split the extracted date (e.g., 2024/10/11)
-        if (dateParts.length === 3) {
-            const [year, month, day] = dateParts.map(Number); // Convert to numbers
-            const date = new Date(Date.UTC(year, month - 1, day)); // Create a UTC Date object
-            return date.toISOString(); // Convert to ISO 8601 format
+    if (note) { // Check if note (comments) is empty, if so return null
+        const match = note.match(/Delivery-Date:\s*([\d/]+)/); // Searches the note (comments!) for the value within the format "Delivery-Date: ...etc." / [comment written 2025-03-06]
+        if (match) {
+            const dateParts = match[1].split('/'); // Split the extracted date (e.g., 2024/10/11)
+            if (dateParts.length === 3) {
+                const [year, month, day] = dateParts.map(Number); // Convert to numbers
+                const date = new Date(Date.UTC(year, month - 1, day)); // Create a UTC Date object
+                return date.toISOString(); // Convert to ISO 8601 format
+            }
         }
+ 
+        return null; // Return null if no valid date is found
     }
-    return null; // Return null if no valid date is found
+ 
+    return null; // Return null if note == null, meaning there are no comments.
 }
 
 async function updateSaleShipBy(saleDetail) {
@@ -74,8 +79,18 @@ async function updateSaleShipBy(saleDetail) {
     //               unfulfilled orders to be missed by staging team.
     // Includes edge case: when DeliveryDate is null because the comments (note) is empty, just add 1 to the invoice date
     if (normalizedDeliveryDate < normalizedShipBy || DeliveryDate == null) {
-        ShipBy = new Date(ShipBy)
-        DeliveryDate = (ShipBy.setDate(ShipBy.getDate() + 1)).toISOString()
+        // Debugging block
+        if (normalizedDeliveryDate < normalizedShipBy) {
+            console.log(`Customer: ${Customer} has a DeliveryDate set before their ShipBy Date. Replacing with new date.`);
+        } else if (DeliveryDate == null) {
+            console.log("Comments are empty. Adding new date.");
+        } else {
+            console.error("Condition errored out in an unlikely way, check edge cases.");
+        }
+
+        // If any of the above conditions are true, replace DeliveryDate with ShipBy + 1 for staging purposes
+        ShipBy = new Date(ShipBy);
+        DeliveryDate = (ShipBy.setDate(ShipBy.getDate() + 1)).toISOString();
     }
 
     // Skip update if DeliveryDate is already equal to ShipBy
