@@ -89,8 +89,10 @@ async function updateSaleShipBy(saleDetail) {
         }
 
         // If any of the above conditions are true, replace DeliveryDate with ShipBy + 1 for staging purposes
+        // edit made: do not chain together toISOString with setDate(), operates on the wrong return value.
         ShipBy = new Date(ShipBy);
-        DeliveryDate = (ShipBy.setDate(ShipBy.getDate() + 1)).toISOString();
+        ShipBy.setDate(ShipBy.getDate() + 1)
+        DeliveryDate = ShipBy.toISOString();
     }
 
     // Skip update if DeliveryDate is already equal to ShipBy
