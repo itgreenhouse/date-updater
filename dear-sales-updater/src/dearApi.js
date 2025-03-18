@@ -67,6 +67,8 @@ function extractDeliveryDate(note) {
 async function updateSaleShipBy(saleDetail) {
     var { ID, Customer, CustomerID, DeliveryDate, ShipBy, TaxRule, PriceTier } = saleDetail;
 
+    console.log(`Customer: ${Customer}, DeliveryDate: ${DeliveryDate}, ShipBy: ${ShipBy}`);
+
     // Normalize both dates for comparison (strip milliseconds and timezone)
     const normalizedDeliveryDate = DeliveryDate
         ? new Date(DeliveryDate).toISOString().split('.')[0] + "Z" // Ensure both have UTC timezone
