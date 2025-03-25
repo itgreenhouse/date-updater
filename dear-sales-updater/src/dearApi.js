@@ -107,6 +107,7 @@ async function updateSaleShipBy(saleDetail) {
         ID,
         Customer,
         CustomerID,
+        DeliveryDate: DeliveryDate,
         ShipBy: DeliveryDate,
         TaxRule,
         PriceTier
