@@ -25,7 +25,7 @@ async function fetchSaleList() {
 
         const response = await dearApiClient.get(
             // `/saleList?Page=1&Limit=1000&CreatedSince=${createdSince}&UpdatedSince=${updatedSince}&OrderLocationID=${process.env.ORDER_LOCATION_ID}`
-            `/saleList?Page=1&Limit=1000&CreatedSince=${createdSince}&OrderLocationID=${process.env.ORDER_LOCATION_ID}`
+            `/saleList?Page=1&Limit=1000&CreatedSince=${createdSince}&UpdatedSince=${updatedSince}&OrderLocationID=${process.env.ORDER_LOCATION_ID}`
         );
         const data = response.data;
 
