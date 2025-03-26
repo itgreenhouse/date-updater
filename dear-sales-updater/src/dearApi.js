@@ -20,9 +20,12 @@ async function fetchSaleList() {
     try {
         const { createdSince, updatedSince } = getCurrentTimestamps();
 
+        console.log('Order Created:', createdSince);
+        console.log('Last Updated:', updatedSince);
+
         const response = await dearApiClient.get(
             // `/saleList?Page=1&Limit=1000&CreatedSince=${createdSince}&UpdatedSince=${updatedSince}&OrderLocationID=${process.env.ORDER_LOCATION_ID}`
-            `/saleList?Page=1&Limit=1000&CreatedSince=${updatedSince}&OrderLocationID=${process.env.ORDER_LOCATION_ID}`
+            `/saleList?Page=1&Limit=1000&CreatedSince=${createdSince}&OrderLocationID=${process.env.ORDER_LOCATION_ID}`
         );
         const data = response.data;
 
@@ -108,7 +111,6 @@ async function updateSaleShipBy(saleDetail) {
         ID,
         Customer,
         CustomerID,
-        DeliveryDate: DeliveryDate,
         ShipBy: DeliveryDate,
         TaxRule,
         PriceTier
