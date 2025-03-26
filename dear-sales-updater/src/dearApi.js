@@ -4,11 +4,11 @@ const moment = require('moment-timezone');
 
 function getCurrentTimestamps() {
     const nowEST = moment.tz('America/New_York'); // Get current time in EST (or EDT if DST)
-    const fiveMinutesAgoEST = nowEST.clone().subtract(5, 'minutes'); // Subtract 5 minutes
+    const fourMinutesAgoEST = nowEST.clone().subtract(4, 'minutes'); // Subtract 4 minutes instead of 5 to prevent repeatedly checking the same orders after they've been updated 
 
     // Convert EST to UTC
     const createdSinceEST = nowEST.format('YYYY-MM-DD'); // Date in EST
-    const updatedSinceUTC = fiveMinutesAgoEST.utc().toISOString(); // ISO string in UTC
+    const updatedSinceUTC = fourMinutesAgoEST.utc().toISOString(); // ISO string in UTC
 
     return {
         createdSince: createdSinceEST, // Use EST date
