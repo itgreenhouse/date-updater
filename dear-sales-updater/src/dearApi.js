@@ -8,7 +8,7 @@ function getCurrentTimestamps() {
 
     // Convert EST to UTC
     const createdSinceEST = nowEST.format('YYYY-MM-DD'); // Date in EST
-    const updatedSinceUTC = fourMinutesAgoEST.utc().toISOString(); // ISO string in UTC
+    const updatedSinceUTC = fiveMinutesAgoEST.utc().toISOString(); // ISO string in UTC
 
     return {
         createdSince: createdSinceEST, // Use EST date
