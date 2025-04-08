@@ -68,8 +68,9 @@ function extractDeliveryDate(note) {
     return null; // Return null if note == null, meaning there are no comments.
 }
 
-async function updateSaleShipBy(saleDetail) {
+async function updateSaleShipBy(saleDetail, baseNote) {
     var { ID, Customer, CustomerID, DeliveryDate, ShipBy, TaxRule, PriceTier } = saleDetail;
+    var newNote = baseNote;
 
     console.log(`Customer: ${Customer}, DeliveryDate: ${DeliveryDate}, ShipBy: ${ShipBy}`);
 
@@ -97,8 +98,16 @@ async function updateSaleShipBy(saleDetail) {
         // If any of the above conditions are true, replace DeliveryDate with ShipBy + 1 for staging purposes
         // edit made: do not chain together toISOString with setDate(), operates on the wrong return value.
         ShipBy = new Date(ShipBy);
-        ShipBy.setDate(ShipBy.getDate() + 1)
-        DeliveryDate = ShipBy.toISOString();
+        ShipBy.setDate(ShipBy.getDate() + 1);
+        DeliveryDate = ShipBy.toISOString().split("T")[0];
+
+        if (baseNote) {
+            // replaces all instances of Delivery Dates in the DEAR sale notes with the proper delivery date, catches until the next line break (\n).
+            newNote = baseNote.replaceAll(/Delivery-Date[:\s]*([^\n]*)/g,"Delivery-Date: " + DeliveryDate);
+        } else {
+            // if there's no notes or no valid date, add it onto the base note.
+            newNote = "Delivery-Date: " + DeliveryDate + "\n" + baseNote;
+        }
     }
 
     // Skip update if DeliveryDate is already equal to ShipBy
@@ -113,7 +122,8 @@ async function updateSaleShipBy(saleDetail) {
         CustomerID,
         ShipBy: DeliveryDate,
         TaxRule,
-        PriceTier
+        PriceTier,
+        Note: newNote
          // Use the original DeliveryDate here for the update
     };
 
@@ -132,9 +142,10 @@ async function fetchAndUpdateSales() {
         for (const saleId of saleIds) {
             try {
                 const saleData = await fetchSale(saleId);
+                const baseNote = saleData.Note;
 
                 // Extract the Delivery-Date from Note field
-                const deliveryDate = extractDeliveryDate(saleData.Note);
+                const deliveryDate = extractDeliveryDate(baseNote);
 
                 const saleDetail = {
                     ID: saleData.ID,
@@ -147,7 +158,7 @@ async function fetchAndUpdateSales() {
                 };
 
                 // Update sale only if necessary
-                await updateSaleShipBy(saleDetail);
+                await updateSaleShipBy(saleDetail, baseNote);
 
                 // Delay 1 second between calls to avoid hitting rate limits
                 await delay(1000);
