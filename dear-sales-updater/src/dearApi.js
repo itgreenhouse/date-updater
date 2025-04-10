@@ -7,12 +7,14 @@ function getCurrentTimestamps() {
     const fiveMinutesAgoEST = nowEST.clone().subtract(5, 'minutes');
 
     // Convert EST to UTC
-    const createdSinceEST = nowEST.format('YYYY-MM-DD'); // Date in EST
+    const createdSinceEST = nowEST.subtract(1, 'days').format('YYYY-MM-DD'); // Date in EST
     const updatedSinceUTC = fiveMinutesAgoEST.utc().toISOString(); // ISO string in UTC
+    const updatedSinceEST = fiveMinutesAgoEST.toISOString(); // test with consistent EST time
 
     return {
         createdSince: createdSinceEST, // Use EST date
-        updatedSince: updatedSinceUTC, // Keep this in UTC
+        // updatedSince: updatedSinceUTC, // Keep this in UTC
+        updatedSince: updatedSinceEST
     };
 }
 
@@ -85,7 +87,13 @@ async function updateSaleShipBy(saleDetail, baseNote) {
     // Band-aid fix: if DeliveryDate falls before ShipBy (invoice) date, set DeliveryDate = ShipBy + 1 to account for staging and to prevent
     //               unfulfilled orders to be missed by staging team.
     // Includes edge case: when DeliveryDate is null because the comments (note) is empty, just add 1 to the invoice date
-    if (normalizedDeliveryDate < normalizedShipBy || DeliveryDate == null) {
+    if (normalizedDeliveryDate < normalizedShipBy || DeliveryDate == null || baseNote == null) {
+        // Invalid Date flag
+        let invalidDate = false;
+        if (DeliveryDate == null) {
+            invalidDate = true;
+        }
+        
         // Debugging block
         if (normalizedDeliveryDate < normalizedShipBy) {
             console.log(`Customer: ${Customer} has a DeliveryDate set before their ShipBy Date. Replacing with new date.`);
@@ -100,13 +108,18 @@ async function updateSaleShipBy(saleDetail, baseNote) {
         ShipBy = new Date(ShipBy);
         ShipBy.setDate(ShipBy.getDate() + 1);
         DeliveryDate = ShipBy.toISOString().split("T")[0];
+        let splitDeliveryDate = DeliveryDate.split("-");
+        let formattedDeliveryDate = splitDeliveryDate[0] + "/" + splitDeliveryDate[1] + "/" + splitDeliveryDate[2];
 
-        if (baseNote) {
+        if (baseNote && invalidDate) {
             // replaces all instances of Delivery Dates in the DEAR sale notes with the proper delivery date, catches until the next line break (\n).
-            newNote = baseNote.replaceAll(/Delivery-Date[:\s]*([^\n]*)/g,"Delivery-Date: " + DeliveryDate);
+            newNote = baseNote.replaceAll(/Delivery-Date[:\s]*([^\n]*)/g,"Delivery-Date: " + formattedDeliveryDate);
+        } else if (baseNote && !invalidDate) {
+            // if there's no delivery date in the notes, attach new delivery date to the original notes
+            newNote = "Delivery-Date: " + formattedDeliveryDate + "\n" + baseNote;
         } else {
-            // if there's no notes or no valid date, add it onto the base note.
-            newNote = "Delivery-Date: " + DeliveryDate + "\n" + baseNote;
+            // if there's no notes, create them
+            newNote = "Delivery-Date: " + formattedDeliveryDate + "\n";
         }
     }
 
