@@ -113,10 +113,10 @@ async function updateSaleShipBy(saleDetail, baseNote) {
         let splitDeliveryDate = DeliveryDate.split("-");
         let formattedDeliveryDate = splitDeliveryDate[0] + "/" + splitDeliveryDate[1] + "/" + splitDeliveryDate[2];
 
-        if (baseNote && invalidDate) {
+        if (baseNote && !invalidDate) {
             // replaces all instances of Delivery Dates in the DEAR sale notes with the proper delivery date, catches until the next line break (\n).
             newNote = baseNote.replaceAll(/Delivery-Date[:\s]*([^\n]*)/g,"Delivery-Date: " + formattedDeliveryDate);
-        } else if (baseNote && !invalidDate) {
+        } else if (baseNote && invalidDate) {
             // if there's no delivery date in the notes, attach new delivery date to the original notes
             newNote = "Delivery-Date: " + formattedDeliveryDate + "\n" + baseNote;
         } else {
