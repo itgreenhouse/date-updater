@@ -97,10 +97,12 @@ async function updateSaleShipBy(saleDetail, baseNote) {
         // Debugging block
         if (normalizedDeliveryDate < normalizedShipBy) {
             console.log(`Customer: ${Customer} has a DeliveryDate set before their ShipBy Date. Replacing with new date.`);
-        } else if (DeliveryDate == null) {
+        } else if (baseNote == null) {
             console.log("Comments are empty. Adding new date.");
+        } else if (DeliveryDate == null) {
+            console.log("No valid delivery date found");
         } else {
-            console.error("Condition errored out in an unlikely way, check edge cases.");
+            console.error("Condition errored out in an unlikely way, check for edge case.");
         }
 
         // If any of the above conditions are true, replace DeliveryDate with ShipBy + 1 for staging purposes
