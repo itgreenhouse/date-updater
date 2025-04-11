@@ -4,20 +4,19 @@ const moment = require('moment-timezone');
 
 function getCurrentTimestamps() {
     const nowEST = moment.tz('America/New_York'); // Get current time in EST (or EDT if DST)
-    const fiveMinutesAgoEST = nowEST.clone().subtract(5, 'minutes');
+    const fiveMinutesAgoEST = nowEST.clone().subtract(5, 'minutes'); // Check for orders that came in within the last 5 minutes, since the last time the program ran
 
     // Convert EST to UTC
-    const createdSinceEST = nowEST.subtract(1, 'days').format('YYYY-MM-DD'); // Date in EST
-    const updatedSinceUTC = fiveMinutesAgoEST.utc().toISOString(); // ISO string in UTC
-    const updatedSinceEST = fiveMinutesAgoEST.toISOString(); // test with consistent EST time
+    const createdSinceEST = nowEST.subtract(1, 'days').format('YYYY-MM-DD'); // Date in EST, subtract 1 to account for midnight orders that could have been backdated
+    const updatedSinceEST = fiveMinutesAgoEST.toISOString(); // ISO string in EST
 
     return {
         createdSince: createdSinceEST, // Use EST date
-        // updatedSince: updatedSinceUTC, // Keep this in UTC
-        updatedSince: updatedSinceEST
+        updatedSince: updatedSinceEST, // Use EST to stay consistent
     };
 }
 
+// fetches the list of sales based on when they were created and when they were last updated
 async function fetchSaleList() {
     try {
         const { createdSince, updatedSince } = getCurrentTimestamps();
@@ -25,12 +24,13 @@ async function fetchSaleList() {
         console.log('Order Created:', createdSince);
         console.log('Last Updated:', updatedSince);
 
+        // fetch list of sale IDs using a GET request
         const response = await dearApiClient.get(
-            // `/saleList?Page=1&Limit=1000&CreatedSince=${createdSince}&UpdatedSince=${updatedSince}&OrderLocationID=${process.env.ORDER_LOCATION_ID}`
             `/saleList?Page=1&Limit=1000&CreatedSince=${createdSince}&UpdatedSince=${updatedSince}&OrderLocationID=${process.env.ORDER_LOCATION_ID}`
         );
         const data = response.data;
 
+        // filters for orders made through Shopify that are still valid/in progress
         const filteredSales = data.SaleList.filter(sale => sale.Status !== 'VOIDED' && sale.SourceChannel === 'Shopify');
 
         const saleIds = filteredSales.map(sale => sale.SaleID);
@@ -42,6 +42,7 @@ async function fetchSaleList() {
     }
 }
 
+// Fetches sales based on an inputted sale ID
 async function fetchSale(SaleID) {
     try {
         const response = await dearApiClient.get(`/sale?ID=${SaleID}&CombineAdditionalCharges=true`);
@@ -52,9 +53,10 @@ async function fetchSale(SaleID) {
     }
 }
 
+// Extracts a delivery date from the sale notes/comments
 function extractDeliveryDate(note) {
     if (note) { // Check if note (comments) is empty, if so return null
-        const match = note.match(/Delivery-Date:\s*([\d/]+)/); // Searches the note (comments!) for the value within the format "Delivery-Date: ...etc." / [comment written 2025-03-06]
+        const match = note.match(/Delivery-Date:\s*([\d/]+)/); // Searches the notes for the value within the format "Delivery-Date: ...etc." using a regex pattern
         if (match) {
             const dateParts = match[1].split('/'); // Split the extracted date (e.g., 2024/10/11)
             if (dateParts.length === 3) {
@@ -85,10 +87,11 @@ async function updateSaleShipBy(saleDetail, baseNote) {
         : null;
 
     // Band-aid fix: if DeliveryDate falls before ShipBy (invoice) date, set DeliveryDate = ShipBy + 1 to account for staging and to prevent
-    //               unfulfilled orders to be missed by staging team.
-    // Includes edge case: when DeliveryDate is null because the comments (note) is empty, just add 1 to the invoice date
+    //               unfulfilled orders to be missed by staging.
+    // Includes edge cases: when baseNote is null because the comments (note) is empty, or if Deliverydate is null because there's no date in
+    //                      the comments, just add 1 to the invoice date
     if (normalizedDeliveryDate < normalizedShipBy || DeliveryDate == null || baseNote == null) {
-        // Invalid Date flag
+        // Invalid Date flag since DeliveryDate gets updated later
         let invalidDate = false;
         if (DeliveryDate == null) {
             invalidDate = true;
@@ -114,7 +117,7 @@ async function updateSaleShipBy(saleDetail, baseNote) {
         let formattedDeliveryDate = splitDeliveryDate[0] + "/" + splitDeliveryDate[1] + "/" + splitDeliveryDate[2];
 
         if (baseNote && !invalidDate) {
-            // replaces all instances of Delivery Dates in the DEAR sale notes with the proper delivery date, catches until the next line break (\n).
+            // replaces all instances of Delivery Dates in the DEAR sale notes with the proper delivery date, catches all characters until the next line break (\n).
             newNote = baseNote.replaceAll(/Delivery-Date[:\s]*([^\n]*)/g,"Delivery-Date: " + formattedDeliveryDate);
         } else if (baseNote && invalidDate) {
             // if there's no delivery date in the notes, attach new delivery date to the original notes
@@ -131,6 +134,8 @@ async function updateSaleShipBy(saleDetail, baseNote) {
         return;
     }
 
+    // This is the sale payload that gets sent back to the api client when it sends the PUT request
+    // Full list of sale properties can be found in the Cin7 Core API Docs, under Sale -> PUT 
     const body = {
         ID,
         Customer,
@@ -139,7 +144,6 @@ async function updateSaleShipBy(saleDetail, baseNote) {
         TaxRule,
         PriceTier,
         Note: newNote
-         // Use the original DeliveryDate here for the update
     };
 
     try {
@@ -150,7 +154,8 @@ async function updateSaleShipBy(saleDetail, baseNote) {
     }
 }
 
-
+// Combines the above functions to update sales
+// Flow: fetch sale list -> fetch sale by ID -> extract delivery date via notes -> based on the sale notes and the potential delivery date within it
 async function fetchAndUpdateSales() {
     try {
         const saleIds = await fetchSaleList();
